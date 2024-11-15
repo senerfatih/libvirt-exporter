@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AlexZzz/libvirt-exporter/libvirtSchema"
+	"github.com/senerfatih/libvirt-exporter/libvirtSchema"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/alecthomas/kingpin.v2"
