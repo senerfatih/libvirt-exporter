@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/AlexZzz/libvirt-exporter/libvirtSchema"
 	"github.com/prometheus/client_golang/prometheus"
@@ -114,12 +115,16 @@ var (
 		"Real CPU number, or one of the values from virVcpuHostCpuState",
 		[]string{"domain", "vcpu"},
 		nil)
+	libvirtDomainEmulatorThradCpuSetDesc = prometheus.NewDesc(
+		prometheus.BuildFQName("libvirt", "domain_emulatorthread", "cpuset"),
+		"CPU affinity setting of all emulator threads of domain",
+		[]string{"domain", "emulatorpin_cpuset"},
+		nil)
 	libvirtDomainVcpuWaitDesc = prometheus.NewDesc(
 		prometheus.BuildFQName("libvirt", "domain_vcpu", "wait_seconds_total"),
 		"Vcpu's wait_sum metric. CONFIG_SCHEDSTATS has to be enabled",
 		[]string{"domain", "vcpu"},
 		nil)
-
 	libvirtDomainMetaBlockDesc = prometheus.NewDesc(
 		prometheus.BuildFQName("libvirt", "domain_block", "meta"),
 		"Block device metadata info. Device name, source file, serial.",
@@ -514,6 +519,28 @@ func CollectDomain(ch chan<- prometheus.Metric, stat libvirt.DomainStats) error 
 			}
 		}
 	}
+
+	emulatorThreadCpuMap, err := stat.Domain.GetEmulatorPinInfo(0)
+	if err != nil {
+		return err
+	}
+	// Collect pinned CPUs
+	var pinnedCPUs []string
+	hasPinnedCPUs := 0
+	for cpu, isPinned := range emulatorThreadCpuMap {
+		if isPinned {
+			pinnedCPUs = append(pinnedCPUs, fmt.Sprintf("%d", cpu))
+			hasPinnedCPUs = 1
+		}
+	}
+	// Join pinned CPUs into a comma-separated string
+	pinnedCPUsStr := strings.Join(pinnedCPUs, ",")
+	ch <- prometheus.MustNewConstMetric(
+		libvirtDomainEmulatorThradCpuSetDesc,
+		prometheus.GaugeValue,
+		float64(hasPinnedCPUs),
+		domainName,
+		pinnedCPUsStr)
 
 	// Report block device statistics.
 	for _, disk := range stat.Block {
