@@ -1,4 +1,4 @@
-module github.com/AlexZzz/libvirt-exporter
+module github.com/senerfatih/libvirt-exporter
 
 go 1.12
 
